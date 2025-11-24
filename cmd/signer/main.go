@@ -13,6 +13,7 @@ import (
 	"github.com/alecthomas/kong"
 	"google.golang.org/grpc"
 	v1 "k8s.io/externaljwt/apis/v1"
+	"k8s.io/externaljwt/apis/v1alpha1"
 
 	"github.com/zarvd/k8s-external-signer/internal/key"
 	"github.com/zarvd/k8s-external-signer/internal/server"
@@ -29,10 +30,12 @@ func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
 	}
 	defer km.Close()
 
-	svr := server.NewServer(logger, km)
+	v1Server := server.NewV1Server(logger, km)
+	v1alpha1Server := server.NewV1Alpha1Server(logger, km)
 
 	grpcServer := grpc.NewServer()
-	v1.RegisterExternalJWTSignerServer(grpcServer, svr)
+	v1.RegisterExternalJWTSignerServer(grpcServer, v1Server)
+	v1alpha1.RegisterExternalJWTSignerServer(grpcServer, v1alpha1Server)
 
 	listener, err := net.Listen("unix", cli.UnixDomainSocket)
 	if err != nil {
