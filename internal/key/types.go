@@ -17,9 +17,15 @@ type PublicKey struct {
 	Key   []byte
 }
 
+type StaticKey struct {
+	SigningKey string
+	Key        string
+	KeyID      string
+}
+
 type KeyManager interface {
 	Close() error
 	Sign(ctx context.Context, encodedClaims string) (*SignedToken, error)
-	PublicKey() *PublicKey
+	PublicKeys() []*PublicKey
 	Expiration() time.Duration
 }

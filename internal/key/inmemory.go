@@ -31,6 +31,7 @@ type inMemoryKeyManager struct {
 
 	mu     sync.Mutex
 	active *keyPairs
+	static *StaticKey
 	keys   []*keyPairs
 	expiry time.Duration
 	cancel context.CancelFunc
@@ -38,10 +39,12 @@ type inMemoryKeyManager struct {
 
 func NewInMemoryKeyManager(
 	logger *slog.Logger,
+	staticKey *StaticKey,
 	expiry time.Duration,
 ) (KeyManager, error) {
 	k := &inMemoryKeyManager{
 		logger: logger,
+		static: staticKey,
 		expiry: expiry,
 	}
 	if err := k.rotate(); err != nil {
@@ -88,13 +91,22 @@ func (s *inMemoryKeyManager) Sign(ctx context.Context, encodedClaims string) (*S
 	}, nil
 }
 
-func (s *inMemoryKeyManager) PublicKey() *PublicKey {
+func (s *inMemoryKeyManager) PublicKeys() []*PublicKey {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return &PublicKey{
+
+	var rv = make([]*PublicKey, 0, len(s.keys)+1)
+	rv = append(rv, &PublicKey{
 		KeyID: s.active.keyID,
 		Key:   s.active.publicKeyDER,
+	})
+	for _, key := range s.keys {
+		rv = append(rv, &PublicKey{
+			KeyID: key.keyID,
+			Key:   key.publicKeyDER,
+		})
 	}
+	return rv
 }
 
 func (s *inMemoryKeyManager) Expiration() time.Duration {

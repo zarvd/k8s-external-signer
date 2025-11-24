@@ -49,14 +49,15 @@ func (svr *V1Server) FetchKeys(ctx context.Context, req *v1.FetchKeysRequest) (*
 	logger.Info("fetching keys")
 	defer logger.Info("fetched keys")
 
-	publicKey := svr.km.PublicKey()
+	publicKeys := svr.km.PublicKeys()
 
-	keys := []*v1.Key{
-		{
+	keys := make([]*v1.Key, 0, len(publicKeys))
+	for _, publicKey := range publicKeys {
+		keys = append(keys, &v1.Key{
 			KeyId:                    publicKey.KeyID,
 			Key:                      publicKey.Key,
 			ExcludeFromOidcDiscovery: false,
-		},
+		})
 	}
 
 	return &v1.FetchKeysResponse{
