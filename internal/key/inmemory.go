@@ -78,11 +78,11 @@ func (s *inMemoryKeyManager) Sign(ctx context.Context, encodedClaims string) (*S
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal header: %w", err)
 	}
-	headerB64 := base64.StdEncoding.EncodeToString(headerJSON)
+	headerB64 := base64.RawURLEncoding.EncodeToString(headerJSON)
 
 	h := sha256.Sum256([]byte(fmt.Sprintf("%s.%s", headerB64, encodedClaims)))
 	signature, err := rsa.SignPKCS1v15(nil, active.privateKey, crypto.SHA256, h[:])
-	signatureB64 := base64.StdEncoding.EncodeToString(signature)
+	signatureB64 := base64.RawURLEncoding.EncodeToString(signature)
 
 	return &SignedToken{
 		KeyID:     active.keyID,
