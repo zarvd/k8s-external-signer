@@ -2,7 +2,6 @@ package key
 
 import (
 	"context"
-	"crypto/rsa"
 	"encoding/base64"
 	"encoding/pem"
 	"log/slog"
@@ -16,11 +15,7 @@ func TestInMemoryKeyManager_Sign(t *testing.T) {
 	t.Parallel()
 
 	t.Run("signing a JWT", func(t *testing.T) {
-		km, err := NewInMemoryKeyManager(slog.Default(), &StaticKey{
-			SigningKey:   &rsa.PrivateKey{},
-			PublicKeyDER: []byte{},
-			KeyID:        "test",
-		}, 10*time.Minute)
+		km, err := NewInMemoryKeyManager(slog.Default(), nil, 10*time.Minute)
 		require.NoError(t, err)
 		defer km.Close()
 

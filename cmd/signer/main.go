@@ -22,26 +22,19 @@ import (
 
 type CLI struct {
 	UnixDomainSocket string `args:"" required:"" help:"Unix domain socket to listen on"`
-	StaticSigningKey []byte `args:"" type:"filecontent" required:"" help:"Path to static signing key to use"`
-	StaticKeyID      string `args:"" required:"" help:"ID of static key to use"`
+
+	EnableStaticKey  bool   `args:"" required:"" help:"Enable static key"`
+	StaticSigningKey []byte `args:"" type:"filecontent" help:"Path to static signing key to use"`
+	StaticKeyID      string `args:"" help:"ID of static key to use"`
 }
 
 func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
-	signingKey, err := key.DecodeRSAPrivateKey(cli.StaticSigningKey)
+	staticKeys, err := cli.listStaticKeys()
 	if err != nil {
-		return fmt.Errorf("failed to decode static signing key: %w", err)
-	}
-	staticPublicKeyDER, err := x509.MarshalPKIXPublicKey(&signingKey.PublicKey)
-	if err != nil {
-		return fmt.Errorf("failed to marshal static public key: %w", err)
+		return err
 	}
 
-	staticKey := &key.StaticKey{
-		SigningKey:   signingKey,
-		PublicKeyDER: staticPublicKeyDER,
-		KeyID:        cli.StaticKeyID,
-	}
-	km, err := key.NewInMemoryKeyManager(logger, staticKey, 10*time.Minute)
+	km, err := key.NewInMemoryKeyManager(logger, staticKeys, 10*time.Minute)
 	if err != nil {
 		return fmt.Errorf("failed to create key manager: %w", err)
 	}
@@ -71,6 +64,28 @@ func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
 	grpcServer.GracefulStop()
 	logger.Info("shutting down")
 	return nil
+}
+
+func (cli *CLI) listStaticKeys() ([]*key.StaticKey, error) {
+	if !cli.EnableStaticKey {
+		return nil, nil
+	}
+
+	signingKey, err := key.DecodeRSAPrivateKey(cli.StaticSigningKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode static signing key: %w", err)
+	}
+	staticPublicKeyDER, err := x509.MarshalPKIXPublicKey(&signingKey.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal static public key: %w", err)
+	}
+
+	staticKey := &key.StaticKey{
+		SigningKey:   signingKey,
+		PublicKeyDER: staticPublicKeyDER,
+		KeyID:        cli.StaticKeyID,
+	}
+	return []*key.StaticKey{staticKey}, nil
 }
 
 func main() {

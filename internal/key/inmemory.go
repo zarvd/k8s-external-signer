@@ -29,24 +29,24 @@ type keyPairs struct {
 type inMemoryKeyManager struct {
 	logger *slog.Logger
 
-	mu        sync.Mutex
-	active    *keyPairs
-	static    *StaticKey
-	keys      []*keyPairs
-	expiry    time.Duration
-	rotatedAt time.Time
-	cancel    context.CancelFunc
+	mu         sync.Mutex
+	active     *keyPairs
+	staticKeys []*StaticKey
+	keys       []*keyPairs
+	expiry     time.Duration
+	rotatedAt  time.Time
+	cancel     context.CancelFunc
 }
 
 func NewInMemoryKeyManager(
 	logger *slog.Logger,
-	staticKey *StaticKey,
+	staticKeys []*StaticKey,
 	expiry time.Duration,
 ) (KeyManager, error) {
 	k := &inMemoryKeyManager{
-		logger: logger,
-		static: staticKey,
-		expiry: expiry,
+		logger:     logger,
+		staticKeys: staticKeys,
+		expiry:     expiry,
 	}
 	if err := k.rotate(); err != nil {
 		return nil, fmt.Errorf("failed to rotate key: %w", err)
@@ -96,19 +96,20 @@ func (s *inMemoryKeyManager) PublicKeys() []*PublicKey {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var rv = make([]*PublicKey, 0, len(s.keys)+1)
-	if s.static != nil {
-		rv = append(rv, &PublicKey{
-			KeyID: s.static.KeyID,
-			Key:   s.static.PublicKeyDER,
-		})
-	}
+	var rv = make([]*PublicKey, 0, len(s.keys)+len(s.staticKeys))
 	for _, key := range s.keys {
 		rv = append(rv, &PublicKey{
 			KeyID: key.keyID,
 			Key:   key.publicKeyDER,
 		})
 	}
+	for _, key := range s.staticKeys {
+		rv = append(rv, &PublicKey{
+			KeyID: key.KeyID,
+			Key:   key.PublicKeyDER,
+		})
+	}
+
 	return rv
 }
 
