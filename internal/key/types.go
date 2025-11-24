@@ -2,6 +2,7 @@ package key
 
 import (
 	"context"
+	"crypto/rsa"
 	"time"
 )
 
@@ -18,9 +19,9 @@ type PublicKey struct {
 }
 
 type StaticKey struct {
-	SigningKey string
-	Key        string
-	KeyID      string
+	SigningKey   *rsa.PrivateKey
+	PublicKeyDER []byte
+	KeyID        string
 }
 
 type KeyManager interface {

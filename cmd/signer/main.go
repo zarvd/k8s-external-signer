@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"net"
@@ -22,15 +23,23 @@ import (
 type CLI struct {
 	UnixDomainSocket string `args:"" required:"" help:"Unix domain socket to listen on"`
 	StaticSigningKey string `args:"" type:"filecontent" required:"" help:"Path to static signing key to use"`
-	StaticKey        string `args:"" type:"filecontent" required:"" help:"Path to static key to use"`
 	StaticKeyID      string `args:"" required:"" help:"ID of static key to use"`
 }
 
 func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
+	signingKey, err := key.DecodeRSAPrivateKey(cli.StaticSigningKey)
+	if err != nil {
+		return fmt.Errorf("failed to decode static signing key: %w", err)
+	}
+	staticPublicKeyDER, err := x509.MarshalPKIXPublicKey(&signingKey.PublicKey)
+	if err != nil {
+		return fmt.Errorf("failed to marshal static public key: %w", err)
+	}
+
 	staticKey := &key.StaticKey{
-		SigningKey: cli.StaticSigningKey,
-		Key:        cli.StaticKey,
-		KeyID:      cli.StaticKeyID,
+		SigningKey:   signingKey,
+		PublicKeyDER: staticPublicKeyDER,
+		KeyID:        cli.StaticKeyID,
 	}
 	km, err := key.NewInMemoryKeyManager(logger, staticKey, 10*time.Minute)
 	if err != nil {

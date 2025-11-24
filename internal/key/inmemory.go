@@ -96,10 +96,12 @@ func (s *inMemoryKeyManager) PublicKeys() []*PublicKey {
 	defer s.mu.Unlock()
 
 	var rv = make([]*PublicKey, 0, len(s.keys)+1)
-	rv = append(rv, &PublicKey{
-		KeyID: s.active.keyID,
-		Key:   s.active.publicKeyDER,
-	})
+	if s.static != nil {
+		rv = append(rv, &PublicKey{
+			KeyID: s.static.KeyID,
+			Key:   s.static.PublicKeyDER,
+		})
+	}
 	for _, key := range s.keys {
 		rv = append(rv, &PublicKey{
 			KeyID: key.keyID,
