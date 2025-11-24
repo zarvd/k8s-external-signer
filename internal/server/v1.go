@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"log/slog"
 
 	"google.golang.org/grpc/codes"
@@ -28,6 +29,15 @@ func NewV1Server(logger *slog.Logger, km key.KeyManager) *V1Server {
 
 func (svr *V1Server) Sign(ctx context.Context, req *v1.SignJWTRequest) (*v1.SignJWTResponse, error) {
 	logger := svr.logger.With(slog.String("method", "Sign"))
+
+	{
+		claims, err := base64.RawURLEncoding.DecodeString(req.Claims)
+		if err != nil {
+			svr.logger.Warn("Failed to decode claims", slog.Any("error", err))
+		} else {
+			svr.logger.Info("Decoded claims", slog.String("claims", string(claims)))
+		}
+	}
 
 	signed, err := svr.km.Sign(ctx, req.Claims)
 	if err != nil {
