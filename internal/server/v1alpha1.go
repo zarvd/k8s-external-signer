@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/base64"
 	"log/slog"
 	"time"
 
@@ -33,13 +32,7 @@ func (svr *V1Alpha1Server) Sign(ctx context.Context, req *v1alpha1.SignJWTReques
 	logger.Info("signing JWT")
 	defer logger.Info("signed JWT")
 
-	claims, err := base64.StdEncoding.DecodeString(req.Claims)
-	if err != nil {
-		svr.logger.Error("failed to decode claims", slog.Any("error", err))
-		return nil, status.Errorf(codes.InvalidArgument, "not a valid base64 encoded JWT claims")
-	}
-
-	signed, err := svr.km.Sign(ctx, claims)
+	signed, err := svr.km.Sign(ctx, req.Claims)
 	if err != nil {
 		svr.logger.Error("failed to sign JWT", slog.Any("error", err))
 		return nil, status.Errorf(codes.Internal, "not able to sign JWT")

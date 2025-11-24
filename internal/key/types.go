@@ -19,7 +19,7 @@ type PublicKey struct {
 
 type KeyManager interface {
 	Close() error
-	Sign(ctx context.Context, payload []byte) (*SignedToken, error)
+	Sign(ctx context.Context, encodedClaims string) (*SignedToken, error)
 	PublicKey() *PublicKey
 	Expiration() time.Duration
 }

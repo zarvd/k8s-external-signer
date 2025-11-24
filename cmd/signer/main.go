@@ -24,7 +24,7 @@ type CLI struct {
 }
 
 func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
-	km, err := key.NewInMemoryKeyManager(logger, 1*time.Hour)
+	km, err := key.NewInMemoryKeyManager(logger, 10*time.Minute)
 	if err != nil {
 		return fmt.Errorf("failed to create key manager: %w", err)
 	}

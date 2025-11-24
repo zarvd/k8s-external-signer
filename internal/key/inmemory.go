@@ -60,7 +60,7 @@ func (s *inMemoryKeyManager) Close() error {
 	return nil
 }
 
-func (s *inMemoryKeyManager) Sign(ctx context.Context, payload []byte) (*SignedToken, error) {
+func (s *inMemoryKeyManager) Sign(ctx context.Context, encodedClaims string) (*SignedToken, error) {
 	s.mu.Lock()
 	active := s.active
 	s.mu.Unlock()
@@ -75,16 +75,15 @@ func (s *inMemoryKeyManager) Sign(ctx context.Context, payload []byte) (*SignedT
 		return nil, fmt.Errorf("failed to marshal header: %w", err)
 	}
 	headerB64 := base64.StdEncoding.EncodeToString(headerJSON)
-	payloadB64 := base64.StdEncoding.EncodeToString(payload)
 
-	h := sha256.Sum256([]byte(fmt.Sprintf("%s.%s", headerB64, payloadB64)))
+	h := sha256.Sum256([]byte(fmt.Sprintf("%s.%s", headerB64, encodedClaims)))
 	signature, err := rsa.SignPKCS1v15(nil, active.privateKey, crypto.SHA256, h[:])
 	signatureB64 := base64.StdEncoding.EncodeToString(signature)
 
 	return &SignedToken{
 		KeyID:     active.keyID,
 		Header:    headerB64,
-		Payload:   payloadB64,
+		Payload:   encodedClaims,
 		Signature: signatureB64,
 	}, nil
 }
