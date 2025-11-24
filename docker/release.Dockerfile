@@ -10,7 +10,5 @@ FROM gcr.io/distroless/static-debian12:debug
 WORKDIR /app
 COPY --from=builder /app/bin/signer /app/bin/signer
 
-EXPOSE 8080
-
 ENTRYPOINT ["/app/bin/signer"]
-CMD ["--port", "8080"]
+CMD ["--unix-domain-socket", "/var/run/k8s-external-signer.sock"]

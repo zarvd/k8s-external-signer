@@ -19,7 +19,7 @@ import (
 )
 
 type CLI struct {
-	Port int `args:"" help:"Port to listen on"`
+	UnixDomainSocket string `args:"" help:"Unix domain socket to listen on"`
 }
 
 func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
@@ -34,7 +34,7 @@ func (cli *CLI) Run(ctx context.Context, logger *slog.Logger) error {
 	grpcServer := grpc.NewServer()
 	v1.RegisterExternalJWTSignerServer(grpcServer, svr)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cli.Port))
+	listener, err := net.Listen("unix", cli.UnixDomainSocket)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}

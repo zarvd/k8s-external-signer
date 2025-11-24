@@ -2,8 +2,7 @@ build:
 	CGO_ENABLED=0 go build -o ./bin/signer ./cmd/signer
 
 run: build
-	./bin/signer --port 8080
-
+	./bin/signer --unix-domain-socket ./k8s-external-signer.sock
 
 IMAGE_NAME ?= k8s-external-signer
 IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
