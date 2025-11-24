@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,14 +28,19 @@ func NewV1Server(logger *slog.Logger, km key.KeyManager) *V1Server {
 
 func (svr *V1Server) Sign(ctx context.Context, req *v1.SignJWTRequest) (*v1.SignJWTResponse, error) {
 	logger := svr.logger.With(slog.String("method", "Sign"))
-	logger.Info("signing JWT")
-	defer logger.Info("signed JWT")
 
 	signed, err := svr.km.Sign(ctx, req.Claims)
 	if err != nil {
-		svr.logger.Error("failed to sign JWT", slog.Any("error", err))
+		svr.logger.Error("Failed to sign JWT", slog.Any("error", err))
 		return nil, status.Errorf(codes.Internal, "not able to sign JWT")
 	}
+
+	logger.Info("Signed JWT",
+		slog.String("key-id", signed.KeyID),
+		slog.String("header", signed.Header),
+		slog.String("payload", signed.Payload),
+		slog.String("signature", signed.Signature),
+	)
 
 	return &v1.SignJWTResponse{
 		Header:    signed.Header,
@@ -46,8 +50,6 @@ func (svr *V1Server) Sign(ctx context.Context, req *v1.SignJWTRequest) (*v1.Sign
 
 func (svr *V1Server) FetchKeys(ctx context.Context, req *v1.FetchKeysRequest) (*v1.FetchKeysResponse, error) {
 	logger := svr.logger.With(slog.String("method", "FetchKeys"))
-	logger.Info("fetching keys")
-	defer logger.Info("fetched keys")
 
 	publicKeys := svr.km.PublicKeys()
 
@@ -60,19 +62,33 @@ func (svr *V1Server) FetchKeys(ctx context.Context, req *v1.FetchKeysRequest) (*
 		})
 	}
 
-	return &v1.FetchKeysResponse{
+	rv := &v1.FetchKeysResponse{
 		Keys:               keys,
-		DataTimestamp:      timestamppb.Now(),
-		RefreshHintSeconds: int64(5 * time.Minute.Seconds()),
-	}, nil
+		DataTimestamp:      timestamppb.New(svr.km.LastRotatedAt()),
+		RefreshHintSeconds: int64(svr.km.Expiration().Seconds() / 2),
+	}
+
+	keyIDs := make([]string, 0, len(publicKeys))
+	for _, publicKey := range publicKeys {
+		keyIDs = append(keyIDs, publicKey.KeyID)
+	}
+	logger.Info("Fetched keys",
+		slog.Int("num-keys", len(keys)),
+		slog.Any("key-ids", keyIDs),
+		slog.Time("data-timestamp", rv.DataTimestamp.AsTime()),
+		slog.Int64("refresh-hint-seconds", rv.RefreshHintSeconds),
+	)
+
+	return rv, nil
 }
 
 func (svr *V1Server) Metadata(ctx context.Context, req *v1.MetadataRequest) (*v1.MetadataResponse, error) {
 	logger := svr.logger.With(slog.String("method", "Metadata"))
-	logger.Info("fetching metadata")
-	defer logger.Info("fetched metadata")
 
-	return &v1.MetadataResponse{
+	rv := &v1.MetadataResponse{
 		MaxTokenExpirationSeconds: int64(svr.km.Expiration().Seconds()),
-	}, nil
+	}
+	logger.Info("Fetched metadata", slog.Int64("max-token-expiration-seconds", rv.MaxTokenExpirationSeconds))
+
+	return rv, nil
 }

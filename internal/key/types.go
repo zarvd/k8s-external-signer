@@ -29,4 +29,5 @@ type KeyManager interface {
 	Sign(ctx context.Context, encodedClaims string) (*SignedToken, error)
 	PublicKeys() []*PublicKey
 	Expiration() time.Duration
+	LastRotatedAt() time.Time
 }

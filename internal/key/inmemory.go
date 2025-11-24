@@ -29,12 +29,13 @@ type keyPairs struct {
 type inMemoryKeyManager struct {
 	logger *slog.Logger
 
-	mu     sync.Mutex
-	active *keyPairs
-	static *StaticKey
-	keys   []*keyPairs
-	expiry time.Duration
-	cancel context.CancelFunc
+	mu        sync.Mutex
+	active    *keyPairs
+	static    *StaticKey
+	keys      []*keyPairs
+	expiry    time.Duration
+	rotatedAt time.Time
+	cancel    context.CancelFunc
 }
 
 func NewInMemoryKeyManager(
@@ -115,6 +116,12 @@ func (s *inMemoryKeyManager) Expiration() time.Duration {
 	return s.expiry
 }
 
+func (s *inMemoryKeyManager) LastRotatedAt() time.Time {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.rotatedAt
+}
+
 func (s *inMemoryKeyManager) startRotationLoop(ctx context.Context, d time.Duration) {
 	ticker := time.NewTicker(d)
 	defer ticker.Stop()
@@ -162,7 +169,7 @@ func (s *inMemoryKeyManager) rotate() error {
 	if len(s.keys) > 10 {
 		s.keys = s.keys[1:]
 	}
-
+	s.rotatedAt = time.Now()
 	s.logger.Info("Updated active key", slog.String("key-id", keyID), slog.Int("num-keys", len(s.keys)))
 
 	return nil
