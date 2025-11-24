@@ -8,8 +8,8 @@ import (
 	"fmt"
 )
 
-func DecodeRSAPrivateKey(p string) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode([]byte(p))
+func DecodeRSAPrivateKey(p []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(p)
 	if block == nil {
 		return nil, errors.New("failed to decode PEM block")
 	}

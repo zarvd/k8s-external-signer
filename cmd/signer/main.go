@@ -22,7 +22,7 @@ import (
 
 type CLI struct {
 	UnixDomainSocket string `args:"" required:"" help:"Unix domain socket to listen on"`
-	StaticSigningKey string `args:"" type:"filecontent" required:"" help:"Path to static signing key to use"`
+	StaticSigningKey []byte `args:"" type:"filecontent" required:"" help:"Path to static signing key to use"`
 	StaticKeyID      string `args:"" required:"" help:"ID of static key to use"`
 }
 
